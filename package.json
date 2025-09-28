@@ -9,7 +9,13 @@
     "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext ts,tsx --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "docker:dev": "docker-compose up dev",
+    "docker:prod": "docker-compose up prod",
+    "docker:test": "docker-compose run --rm test",
+    "docker:lint": "docker-compose run --rm lint",
+    "docker:build": "docker build -t night-sky-navigator .",
+    "docker:build-dev": "docker build -f Dockerfile.dev -t night-sky-navigator:dev ."
   },
   "keywords": ["pwa", "astronomy", "night-sky", "navigation", "typescript"],
   "author": "Night Sky Navigator Team",
