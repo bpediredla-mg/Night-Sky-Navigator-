@@ -1,0 +1,38 @@
+# Example override file for HTTPS development
+# Copy this to docker-compose.override.yml and customize as needed
+# This enables HTTPS for device orientation and location APIs
+
+services:
+  dev:
+    environment:
+      - NODE_ENV=development
+      - HTTPS=true
+    volumes:
+      - .:/app
+      - /app/node_modules
+      # Uncomment and customize paths to your SSL certificates
+      # - ./ssl/cert.pem:/app/ssl/cert.pem
+      # - ./ssl/key.pem:/app/ssl/key.pem
+    ports:
+      - "3000:3000"
+      - "3001:3001"  # HTTPS port
+    command: >
+      sh -c "
+        echo 'Starting HTTPS development server...' &&
+        npm run dev -- --host 0.0.0.0 --https
+      "
+
+  # Alternative: Use a reverse proxy for HTTPS
+  https-proxy:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx-https.conf:/etc/nginx/nginx.conf
+      # Add your SSL certificates here
+      # - ./ssl/cert.pem:/etc/ssl/cert.pem
+      # - ./ssl/key.pem:/etc/ssl/key.pem
+    depends_on:
+      - dev
+    networks:
+      - night-sky-network
