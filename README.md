@@ -49,11 +49,11 @@ A modern Progressive Web App (PWA) that helps users navigate and explore the nig
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 16+ and npm
+- Node.js 16+ and npm OR Docker (recommended)
 - Modern web browser with HTML5 and ES2020 support
 - HTTPS connection (required for device orientation and location APIs)
 
-### Installation
+### Native Installation
 
 1. **Clone the repository**
    ```bash
@@ -76,11 +76,75 @@ A modern Progressive Web App (PWA) that helps users navigate and explore the nig
    https://localhost:3000
    ```
 
+### Docker Setup (Recommended)
+
+#### Quick Start with Docker
+```bash
+# Clone the repository
+git clone https://github.com/bpediredla-mg/Night-Sky-Navigator-.git
+cd Night-Sky-Navigator-
+
+# Start development server (accessible from mobile devices on local network)
+docker compose up dev
+
+# Or start production server
+docker compose up prod
+```
+
+#### Development with Docker
+```bash
+# Start development server with hot reload
+npm run docker:dev
+# Access at http://localhost:3000 or http://YOUR_LOCAL_IP:3000
+
+# Run type checking
+npm run docker:test
+
+# Run linting
+npm run docker:lint
+
+# Build production image
+npm run docker:build
+```
+
+#### Mobile Device Access
+The Docker development server is configured to accept connections from any IP address on your local network. 
+
+1. **Start the development server:**
+   ```bash
+   docker compose up dev
+   ```
+
+2. **Find your local IP address:**
+   - Windows: `ipconfig`
+   - macOS/Linux: `ifconfig` or `ip addr show`
+
+3. **Access from mobile devices:**
+   ```
+   http://YOUR_LOCAL_IP:3000
+   ```
+   
+   Example: `http://192.168.1.100:3000`
+
+#### Docker Services
+- **Development**: Hot-reload server on port 3000
+- **Production**: Optimized nginx server on port 8080
+- **Test**: Type checking and validation
+- **Lint**: Code style checking
+
 ### Building for Production
 
+#### Native
 ```bash
 npm run build
 npm run preview
+```
+
+#### Docker
+```bash
+# Build and run production container
+docker compose up prod
+# Access at http://localhost:8080
 ```
 
 ## 📱 Device Compatibility
@@ -174,13 +238,75 @@ src/
 
 ### Scripts
 ```bash
+# Native Scripts
 npm run dev        # Start development server
 npm run build      # Build for production
 npm run preview    # Preview production build
 npm run lint       # Run ESLint
 npm run lint:fix   # Fix ESLint issues
 npm run type-check # TypeScript type checking
+
+# Docker Scripts
+npm run docker:dev      # Start development server in Docker
+npm run docker:prod     # Start production server in Docker
+npm run docker:test     # Run type checking in Docker
+npm run docker:lint     # Run linting in Docker
+npm run docker:build    # Build production Docker image
+npm run docker:build-dev # Build development Docker image
 ```
+
+### Docker Development Workflow
+
+#### Option 1: Docker Compose (Recommended)
+```bash
+# Start development with hot reload
+docker compose up dev
+
+# Start production server
+docker compose up prod
+
+# Run tests
+docker compose run --rm test
+
+# Run linting
+docker compose run --rm lint
+```
+
+#### Option 2: Direct Docker Commands
+```bash
+# Build development image
+docker build -f Dockerfile.dev -t night-sky-navigator:dev .
+
+# Run development server
+docker run -p 3000:3000 -v $(pwd):/app night-sky-navigator:dev
+
+# Build production image
+docker build -t night-sky-navigator:prod .
+
+# Run production server
+docker run -p 8080:80 night-sky-navigator:prod
+```
+
+### Accessing from Mobile Devices
+
+1. **Start Docker development server:**
+   ```bash
+   docker compose up dev
+   ```
+
+2. **Find your computer's local IP:**
+   ```bash
+   # On Windows
+   ipconfig | findstr "IPv4"
+   
+   # On macOS/Linux
+   ifconfig | grep "inet " | grep -v 127.0.0.1
+   ```
+
+3. **Connect from mobile device:**
+   - Open browser on your phone/tablet
+   - Navigate to `http://YOUR_LOCAL_IP:3000`
+   - Example: `http://192.168.1.100:3000`
 
 ### Adding New Objects
 1. **Define object** in appropriate data file (e.g., `src/data/planets.ts`)
