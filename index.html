@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Navigate and explore the night sky with interactive features and device orientation support" />
+    <meta name="description" content="Navigate and explore the night sky with interactive features and device orientation support. Requires HTTPS for enhanced sensor features." />
     <meta name="theme-color" content="#0f0f23" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -30,6 +30,9 @@
           <div class="star"></div>
         </div>
         <p>Loading Night Sky Navigator...</p>
+        <div class="loading-info">
+          <small>💡 For best experience, use HTTPS for enhanced orientation tracking</small>
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>

@@ -5,11 +5,13 @@
   "main": "dist/index.html",
   "scripts": {
     "dev": "npx vite",
+    "dev:https": "NODE_ENV=development npx vite",
     "build": "tsc && npx vite build",
     "preview": "npx vite preview",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext ts,tsx --fix",
     "type-check": "tsc --noEmit",
+    "setup-certs": "mkdir -p certs && openssl req -x509 -newkey rsa:4096 -keyout certs/key.pem -out certs/cert.pem -sha256 -days 365 -nodes -subj '/C=US/ST=Dev/L=Dev/O=Dev/OU=Dev/CN=localhost'",
     "docker:dev": "docker compose up dev",
     "docker:prod": "docker compose up prod",
     "docker:test": "docker compose run --rm test",

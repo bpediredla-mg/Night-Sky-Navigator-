@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import fs from 'fs'
+import path from 'path'
 
 export default defineConfig({
   plugins: [
@@ -40,6 +42,26 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
+    // Enable HTTPS for development to test AbsoluteOrientationSensor
+    https: process.env.NODE_ENV === 'development' ? (() => {
+      try {
+        // Try to use existing certificates if available
+        const keyPath = path.resolve(__dirname, 'certs/key.pem');
+        const certPath = path.resolve(__dirname, 'certs/cert.pem');
+        
+        if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+          return {
+            key: fs.readFileSync(keyPath),
+            cert: fs.readFileSync(certPath)
+          };
+        }
+      } catch (error) {
+        console.warn('No SSL certificates found, using default HTTPS config');
+      }
+      
+      // Fallback to Vite's self-signed certificate
+      return true;
+    })() : undefined,
   },
   build: {
     outDir: 'dist',

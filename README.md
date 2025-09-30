@@ -11,7 +11,8 @@ A modern Progressive Web App (PWA) that helps users navigate and explore the nig
 
 ### 🗺️ Interactive Sky Map
 - **Real-time sky visualization** with accurate celestial object positioning
-- **Device gyroscope integration** for intuitive navigation
+- **Enhanced device orientation** using AbsoluteOrientationSensor API (HTTPS required)
+- **Fallback orientation support** with DeviceOrientationEvent for older browsers
 - **Touch and mouse controls** for manual sky exploration
 - **Dynamic field of view** adjustment based on device orientation
 
@@ -68,12 +69,25 @@ A modern Progressive Web App (PWA) that helps users navigate and explore the nig
 
 3. **Start development server**
    ```bash
+   # For basic development (HTTP)
    npm run dev
+   
+   # For enhanced orientation sensors (HTTPS)
+   npm run dev:https
+   ```
+   
+   **Note**: Enhanced orientation features using AbsoluteOrientationSensor require HTTPS.
+
+4. **Set up HTTPS certificates (optional)**
+   ```bash
+   # Generate self-signed certificates for development
+   npm run setup-certs
    ```
 
-4. **Open in browser**
+5. **Open in browser**
    ```
-   https://localhost:3000
+   http://localhost:3000 (basic features)
+   https://localhost:3000 (enhanced orientation tracking)
    ```
 
 ### Docker Setup (Recommended)

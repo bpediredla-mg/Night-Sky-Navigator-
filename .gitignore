@@ -34,3 +34,6 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+# SSL certificates (development only)
+certs/
