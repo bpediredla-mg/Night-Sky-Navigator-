@@ -232,6 +232,11 @@ export class SkyNavigator {
 
   private async setupOrientation(): Promise<void> {
     try {
+      // Check for HTTPS requirement and show notification if needed
+      if (OrientationService.isHttpsRequired()) {
+        this.showNotification('⚠️ HTTPS required for enhanced orientation features. Using fallback mode.', 'warning');
+      }
+
       await this.orientationService.startListening();
       
       this.orientationService.onOrientationUpdate((orientation) => {
@@ -240,12 +245,34 @@ export class SkyNavigator {
           this.skyCanvas.updateOrientation(orientation);
         }
       });
+
+      // Show success message with sensor type
+      const sensorType = this.orientationService.getOrientationSource();
+      console.log(`Orientation services initialized using ${sensorType}`);
       
-      console.log('Orientation services initialized');
+      if (this.orientationService.isUsingSensorAPI()) {
+        this.showNotification('✅ Enhanced orientation tracking enabled', 'success');
+      }
+      
     } catch (error) {
       console.error('Failed to setup orientation:', error);
+      
+      // Show user-friendly error message
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('permission denied')) {
+        this.showNotification('📱 Device orientation permission required for sky tracking', 'error');
+      } else {
+        this.showNotification('⚠️ Orientation tracking unavailable', 'warning');
+      }
+      
       this.appSettings.enableGyroscope = false;
       this.saveSettings();
+      
+      // Update button state
+      const toggleBtn = document.getElementById('toggle-gyro');
+      if (toggleBtn) {
+        toggleBtn.textContent = '🧭 Gyro OFF';
+      }
     }
   }
 
@@ -411,15 +438,31 @@ export class SkyNavigator {
     };
   }
 
-  private showMessage(message: string, type: 'success' | 'error'): void {
+  private showNotification(message: string, type: 'success' | 'error' | 'warning'): void {
     const messageElement = document.createElement('div');
     messageElement.textContent = message;
+    
+    let backgroundColor: string;
+    switch (type) {
+      case 'success':
+        backgroundColor = '#4caf50';
+        break;
+      case 'error':
+        backgroundColor = '#ff5252';
+        break;
+      case 'warning':
+        backgroundColor = '#ff9800';
+        break;
+      default:
+        backgroundColor = '#2196f3';
+    }
+    
     messageElement.style.cssText = `
       position: fixed;
       top: 70px;
       left: 50%;
       transform: translateX(-50%);
-      background: ${type === 'success' ? '#4caf50' : '#ff5252'};
+      background: ${backgroundColor};
       color: white;
       padding: 1rem 2rem;
       border-radius: 12px;
@@ -427,6 +470,8 @@ export class SkyNavigator {
       z-index: 1000;
       font-weight: 600;
       animation: fadeInOut 3s ease;
+      max-width: 90vw;
+      text-align: center;
     `;
 
     document.body.appendChild(messageElement);
@@ -434,5 +479,10 @@ export class SkyNavigator {
     setTimeout(() => {
       messageElement.remove();
     }, 3000);
+  }
+
+  // Legacy method for backward compatibility
+  private showMessage(message: string, type: 'success' | 'error'): void {
+    this.showNotification(message, type);
   }
 }

@@ -8,8 +8,50 @@ export class OrientationService {
   private errorCallbacks: ((error: string) => void)[] = [];
   private lastUpdateTime = 0;
   private readonly UPDATE_THROTTLE = 50; // Throttle updates to 20fps
+  private absoluteOrientationSensor: any = null; // AbsoluteOrientationSensor
+  private usingSensorAPI = false;
 
   async requestPermission(): Promise<PermissionState> {
+    // Check for HTTPS requirement
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+      console.warn('AbsoluteOrientationSensor requires HTTPS. Falling back to DeviceOrientationEvent.');
+    }
+
+    // Try to use AbsoluteOrientationSensor first (modern API)
+    if ('AbsoluteOrientationSensor' in window && location.protocol === 'https:') {
+      try {
+        // Request permissions for sensor APIs
+        const permissions = await Promise.all([
+          navigator.permissions.query({ name: 'accelerometer' as PermissionName }),
+          navigator.permissions.query({ name: 'gyroscope' as PermissionName }),
+          navigator.permissions.query({ name: 'magnetometer' as PermissionName })
+        ]);
+
+        const allGranted = permissions.every(result => result.state === 'granted');
+        if (allGranted) {
+          return PermissionState.GRANTED;
+        }
+
+        // If not all granted, check if any are denied
+        const anyDenied = permissions.some(result => result.state === 'denied');
+        if (anyDenied) {
+          console.warn('Some sensor permissions denied, falling back to DeviceOrientationEvent');
+          return this.requestDeviceOrientationPermission();
+        }
+
+        // If permissions are prompt state, they will be requested when sensor is created
+        return PermissionState.GRANTED;
+      } catch (error) {
+        console.warn('Error checking sensor permissions, falling back to DeviceOrientationEvent:', error);
+        return this.requestDeviceOrientationPermission();
+      }
+    }
+
+    // Fallback to DeviceOrientationEvent
+    return this.requestDeviceOrientationPermission();
+  }
+
+  private async requestDeviceOrientationPermission(): Promise<PermissionState> {
     // Check if DeviceOrientationEvent exists
     if (!window.DeviceOrientationEvent) {
       return PermissionState.DENIED;
@@ -42,6 +84,49 @@ export class OrientationService {
 
     this.isListening = true;
 
+    // Try to use AbsoluteOrientationSensor first
+    if ('AbsoluteOrientationSensor' in window && location.protocol === 'https:') {
+      try {
+        await this.startSensorListening();
+        console.log('Started listening with AbsoluteOrientationSensor');
+        return;
+      } catch (error) {
+        console.warn('Failed to start AbsoluteOrientationSensor, falling back to DeviceOrientationEvent:', error);
+        this.usingSensorAPI = false;
+      }
+    }
+
+    // Fallback to DeviceOrientationEvent
+    this.startDeviceOrientationListening();
+    console.log('Started listening with DeviceOrientationEvent');
+  }
+
+  private async startSensorListening(): Promise<void> {
+    const AbsoluteOrientationSensor = (window as any).AbsoluteOrientationSensor;
+    
+    this.absoluteOrientationSensor = new AbsoluteOrientationSensor({ 
+      frequency: 20, // 20 Hz for smooth updates
+      referenceFrame: 'device' 
+    });
+
+    this.absoluteOrientationSensor.addEventListener('reading', () => {
+      this.handleSensorReading();
+    });
+
+    this.absoluteOrientationSensor.addEventListener('error', (event: any) => {
+      console.error('AbsoluteOrientationSensor error:', event.error);
+      this.notifyErrorCallbacks(`Sensor error: ${event.error.message}`);
+      
+      // Fall back to DeviceOrientationEvent on sensor error
+      this.usingSensorAPI = false;
+      this.startDeviceOrientationListening();
+    });
+
+    this.absoluteOrientationSensor.start();
+    this.usingSensorAPI = true;
+  }
+
+  private startDeviceOrientationListening(): void {
     // Listen for device orientation events
     window.addEventListener('deviceorientation', this.handleOrientationEvent.bind(this), true);
     
@@ -49,8 +134,6 @@ export class OrientationService {
     if ('ondeviceorientationabsolute' in window) {
       window.addEventListener('deviceorientationabsolute', this.handleAbsoluteOrientationEvent.bind(this), true);
     }
-
-    console.log('Started listening for device orientation');
   }
 
   stopListening(): void {
@@ -59,13 +142,74 @@ export class OrientationService {
     }
 
     this.isListening = false;
+
+    // Stop AbsoluteOrientationSensor if using it
+    if (this.absoluteOrientationSensor && this.usingSensorAPI) {
+      try {
+        this.absoluteOrientationSensor.stop();
+        this.absoluteOrientationSensor = null;
+      } catch (error) {
+        console.warn('Error stopping AbsoluteOrientationSensor:', error);
+      }
+    }
+
+    // Remove DeviceOrientationEvent listeners
     window.removeEventListener('deviceorientation', this.handleOrientationEvent.bind(this), true);
     
     if ('ondeviceorientationabsolute' in window) {
       window.removeEventListener('deviceorientationabsolute', this.handleAbsoluteOrientationEvent.bind(this), true);
     }
 
+    this.usingSensorAPI = false;
     console.log('Stopped listening for device orientation');
+  }
+
+  private handleSensorReading(): void {
+    if (!this.absoluteOrientationSensor) return;
+
+    const now = Date.now();
+    if (now - this.lastUpdateTime < this.UPDATE_THROTTLE) {
+      return; // Throttle updates
+    }
+    this.lastUpdateTime = now;
+
+    try {
+      // AbsoluteOrientationSensor provides quaternion data
+      const quaternion = this.absoluteOrientationSensor.quaternion;
+      if (!quaternion || quaternion.length < 4) {
+        return;
+      }
+
+      // Convert quaternion to Euler angles
+      const eulerAngles = this.quaternionToEuler(quaternion);
+      
+      const orientation: DeviceOrientation = {
+        alpha: this.normalizeAngle(eulerAngles.alpha),
+        beta: this.clampAngle(eulerAngles.beta, -180, 180),
+        gamma: this.clampAngle(eulerAngles.gamma, -90, 90),
+        absolute: true // AbsoluteOrientationSensor always provides absolute orientation
+      };
+
+      this.currentOrientation = orientation;
+      this.notifyOrientationCallbacks(orientation);
+    } catch (error) {
+      console.error('Error processing sensor data:', error);
+      this.notifyErrorCallbacks(`Sensor reading error: ${error}`);
+    }
+  }
+
+  private quaternionToEuler(q: number[]): { alpha: number; beta: number; gamma: number } {
+    // Convert quaternion [x, y, z, w] to Euler angles
+    // Reference: https://developer.mozilla.org/en-US/docs/Web/API/AbsoluteOrientationSensor
+    const [x, y, z, w] = q;
+
+    // Calculate Euler angles from quaternion
+    // Note: These calculations match the expected DeviceOrientationEvent coordinate system
+    const alpha = Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z)) * 180 / Math.PI;
+    const beta = Math.asin(Math.max(-1, Math.min(1, 2 * (w * y - z * x)))) * 180 / Math.PI;
+    const gamma = Math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y)) * 180 / Math.PI;
+
+    return { alpha, beta, gamma };
   }
 
   private handleOrientationEvent(event: DeviceOrientationEvent): void {
@@ -133,6 +277,14 @@ export class OrientationService {
 
   getCurrentOrientation(): DeviceOrientation | null {
     return this.currentOrientation;
+  }
+
+  isUsingSensorAPI(): boolean {
+    return this.usingSensorAPI;
+  }
+
+  getOrientationSource(): string {
+    return this.usingSensorAPI ? 'AbsoluteOrientationSensor' : 'DeviceOrientationEvent';
   }
 
   private notifyOrientationCallbacks(orientation: DeviceOrientation): void {
@@ -212,11 +364,21 @@ export class OrientationService {
 
   // Check if device supports orientation
   static isSupported(): boolean {
-    return 'DeviceOrientationEvent' in window;
+    return 'AbsoluteOrientationSensor' in window || 'DeviceOrientationEvent' in window;
   }
 
   // Check if device supports absolute orientation
   static supportsAbsoluteOrientation(): boolean {
-    return 'ondeviceorientationabsolute' in window;
+    return 'AbsoluteOrientationSensor' in window || 'ondeviceorientationabsolute' in window;
+  }
+
+  // Check if AbsoluteOrientationSensor is available
+  static supportsAbsoluteOrientationSensor(): boolean {
+    return 'AbsoluteOrientationSensor' in window && location.protocol === 'https:';
+  }
+
+  // Check if HTTPS is required and available
+  static isHttpsRequired(): boolean {
+    return location.protocol !== 'https:' && location.hostname !== 'localhost';
   }
 }
