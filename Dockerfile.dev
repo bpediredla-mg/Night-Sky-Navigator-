@@ -16,8 +16,11 @@ COPY . .
 # Ensure npm binaries are properly linked
 RUN npm rebuild
 
-# Expose port for development server
-EXPOSE 3000
+# Create certificates directory
+RUN mkdir -p /app/certs
 
-# Command to start development server
-CMD ["npm", "run", "dev"]
+# Expose ports for development server (HTTP and HTTPS)
+EXPOSE 3000 3001
+
+# Default command to start development server
+CMD ["npm", "run", "dev:https"]

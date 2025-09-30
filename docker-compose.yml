@@ -1,6 +1,24 @@
 services:
-  # Development service
+  # Development service with HTTPS support
   dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+      - "3001:3001"  # HTTPS port
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./certs:/app/certs:ro  # Mount certificates directory
+    environment:
+      - NODE_ENV=development
+    command: npm run dev:https
+    networks:
+      - night-sky-network
+
+  # Development service with HTTP (fallback)
+  dev-http:
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -15,6 +33,20 @@ services:
     networks:
       - night-sky-network
 
+  # HTTPS Proxy service for development
+  dev-https-proxy:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx-dev-https.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/ssl:ro
+    depends_on:
+      - dev-http
+    networks:
+      - night-sky-network
+
   # Production service
   prod:
     build:
@@ -22,6 +54,19 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:80"
+    networks:
+      - night-sky-network
+
+  # Production service with HTTPS
+  prod-https:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod-https
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./certs:/etc/ssl:ro
     networks:
       - night-sky-network
 

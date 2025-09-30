@@ -13,11 +13,15 @@
     "type-check": "tsc --noEmit",
     "setup-certs": "mkdir -p certs && openssl req -x509 -newkey rsa:4096 -keyout certs/key.pem -out certs/cert.pem -sha256 -days 365 -nodes -subj '/C=US/ST=Dev/L=Dev/O=Dev/OU=Dev/CN=localhost'",
     "docker:dev": "docker compose up dev",
+    "docker:dev-http": "docker compose up dev-http",
+    "docker:dev-https": "docker compose up dev-https-proxy",
     "docker:prod": "docker compose up prod",
+    "docker:prod-https": "docker compose up prod-https",
     "docker:test": "docker compose run --rm test",
     "docker:lint": "docker compose run --rm lint",
     "docker:build": "docker build -t night-sky-navigator .",
-    "docker:build-dev": "docker build -f Dockerfile.dev -t night-sky-navigator:dev ."
+    "docker:build-dev": "docker build -f Dockerfile.dev -t night-sky-navigator:dev .",
+    "docker:build-https": "docker build -f Dockerfile.prod-https -t night-sky-navigator:https ."
   },
   "keywords": ["pwa", "astronomy", "night-sky", "navigation", "typescript"],
   "author": "Night Sky Navigator Team",

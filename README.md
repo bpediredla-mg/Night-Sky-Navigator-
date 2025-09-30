@@ -93,23 +93,39 @@ A modern Progressive Web App (PWA) that helps users navigate and explore the nig
 ### Docker Setup (Recommended)
 
 #### Quick Start with Docker
+
 ```bash
 # Clone the repository
 git clone https://github.com/bpediredla-mg/Night-Sky-Navigator-.git
 cd Night-Sky-Navigator-
 
-# Start development server (accessible from mobile devices on local network)
-docker compose up dev
+# Development with HTTPS (recommended for sensor testing)
+npm run docker:dev-https
+# Access at https://localhost or https://YOUR_LOCAL_IP
 
-# Or start production server
-docker compose up prod
+# Alternative: HTTP development server
+npm run docker:dev-http
+# Access at http://localhost:3000
+
+# Production with HTTPS
+npm run docker:prod-https
+# Access at https://localhost
+
+# Standard production server
+npm run docker:prod
+# Access at http://localhost:8080
 ```
 
 #### Development with Docker
+
 ```bash
-# Start development server with hot reload
-npm run docker:dev
-# Access at http://localhost:3000 or http://YOUR_LOCAL_IP:3000
+# HTTPS development (enables AbsoluteOrientationSensor)
+npm run docker:dev-https  # Recommended for full feature testing
+# Access at https://localhost
+
+# HTTP development (fallback mode)
+npm run docker:dev-http   # Basic development without enhanced sensors
+# Access at http://localhost:3000
 
 # Run type checking
 npm run docker:test
@@ -117,28 +133,42 @@ npm run docker:test
 # Run linting
 npm run docker:lint
 
-# Build production image
-npm run docker:build
+# Build production images
+npm run docker:build      # HTTP production
+npm run docker:build-https # HTTPS production
 ```
 
-#### Mobile Device Access
-The Docker development server is configured to accept connections from any IP address on your local network. 
+#### Mobile Device Access with HTTPS
 
-1. **Start the development server:**
+The Docker HTTPS setup enables testing on mobile devices with full sensor support:
+
+1. **Start the HTTPS development server:**
    ```bash
-   docker compose up dev
+   npm run docker:dev-https
    ```
 
 2. **Find your local IP address:**
-   - Windows: `ipconfig`
-   - macOS/Linux: `ifconfig` or `ip addr show`
+   - Windows: `ipconfig | findstr "IPv4"`
+   - macOS/Linux: `ip addr show | grep inet | grep -v 127.0.0.1`
 
 3. **Access from mobile devices:**
    ```
-   http://YOUR_LOCAL_IP:3000
+   https://YOUR_LOCAL_IP
    ```
-   
-   Example: `http://192.168.1.100:3000`
+   Example: `https://192.168.1.100`
+
+4. **Accept certificate warning** and enjoy enhanced orientation tracking!
+
+#### Docker Services Overview
+
+| Service | Purpose | Access | Features |
+|---------|---------|--------|----------|
+| `dev-https-proxy` | HTTPS development | https://localhost | Full sensor support |
+| `dev-http` | HTTP development | http://localhost:3000 | Basic features |
+| `prod-https` | HTTPS production | https://localhost | Production + HTTPS |
+| `prod` | HTTP production | http://localhost:8080 | Standard production |
+
+For detailed Docker HTTPS setup instructions, see [DOCKER-HTTPS.md](DOCKER-HTTPS.md).
 
 #### Docker Services
 - **Development**: Hot-reload server on port 3000
