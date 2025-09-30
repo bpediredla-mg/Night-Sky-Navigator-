@@ -418,20 +418,33 @@ export class SkyCanvas {
     // This is a simplified projection - in a real app, you'd use proper astronomical calculations
     
     // Convert RA/Dec to azimuth/altitude based on current view
-    const azimuth = (ra * 15 - this.viewAzimuth + 360) % 360; // RA in degrees
-    const altitude = dec;
+    // RA is in hours (0-24), convert to degrees
+    const objectAzimuth = (ra * 15) % 360; // RA in degrees
+    const objectAltitude = dec;
     
-    // Check if object is in current field of view
-    const azimuthDiff = Math.abs(azimuth - 180);
-    const altitudeDiff = Math.abs(altitude - this.viewAltitude);
+    // Calculate relative position from current view center
+    let azimuthDiff = objectAzimuth - this.viewAzimuth;
     
-    if (azimuthDiff > this.fieldOfView / 2 || altitudeDiff > this.fieldOfView / 2) {
+    // Handle wraparound at 0/360 degrees
+    if (azimuthDiff > 180) azimuthDiff -= 360;
+    if (azimuthDiff < -180) azimuthDiff += 360;
+    
+    const altitudeDiff = objectAltitude - this.viewAltitude;
+    
+    // Check if object is in current field of view (be more inclusive)
+    const halfFOV = this.fieldOfView / 2;
+    if (Math.abs(azimuthDiff) > halfFOV || Math.abs(altitudeDiff) > halfFOV) {
       return null; // Object not in view
     }
     
     // Project to screen coordinates
-    const x = this.canvas.width / 2 + (azimuth - 180) * (this.canvas.width / this.fieldOfView);
-    const y = this.canvas.height / 2 - (altitude - this.viewAltitude) * (this.canvas.height / this.fieldOfView);
+    const x = this.canvas.width / 2 + azimuthDiff * (this.canvas.width / this.fieldOfView);
+    const y = this.canvas.height / 2 - altitudeDiff * (this.canvas.height / this.fieldOfView);
+    
+    // Ensure coordinates are within canvas bounds
+    if (x < 0 || x > this.canvas.width || y < 0 || y > this.canvas.height) {
+      return null;
+    }
     
     return { x, y };
   }

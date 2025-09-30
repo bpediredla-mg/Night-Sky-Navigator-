@@ -60,6 +60,9 @@ export class SkyNavigator {
         await this.skyCanvas.init();
       }
       
+      // Load and display celestial objects initially
+      this.updateVisibleObjects();
+      
       console.log('SkyNavigator initialized successfully');
     } catch (error) {
       console.error('Failed to initialize SkyNavigator:', error);
